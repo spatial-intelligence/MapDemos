@@ -1,0 +1,142 @@
+<!--Bssed on https://algospark.com/eateries/index.html -->
+
+<html>
+  <head>
+    <title>DECK GL DEMO 1</title>
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+    
+    <script src="https://unpkg.com/deck.gl@^6.2.0/deckgl.min.js"></script>
+    <script src="https://api.tiles.mapbox.com/mapbox-gl-js/v0.50.0/mapbox-gl.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://api.tiles.mapbox.com/mapbox-gl-js/v0.50.0/mapbox-gl.css">
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
+
+
+    <style type="text/css">
+      body { font-family: Helvetica, Arial, sans-serif; width: 100vw; height: 100vh; margin: 0; }
+      #control-panel { position: absolute; background: #fff; top: 0; left: 0; margin: 10px; padding: 15px; font-size: 12px; line-height: 1.25; z-index: 1; }
+      label { display: inline-block; width: 120px; }
+    </style>
+  </head>
+
+  <body>
+    <div id="control-panel">
+		<a href="https://algospark.com"><img src="https://algospark.com/img/icon/LinkedInLogo.png" width="30px" height="30px" alt="Algospark"></a>
+		<p><b> Distribution of Eateries across the UK</b></p>
+      <div>
+        <label>Radius (metres)</label>
+        <input id="radius" type="range" min="1000" max="20000" step="1000" value="1000"></input>
+        <span id="radius-value"></span>
+      </div>
+      <div>
+        <label>Hexagon Size Scale</label>
+        <input id="coverage" type="range" min="0" max="1" step="0.1" value="1"></input>
+        <span id="coverage-value"></span>
+      </div>
+      <div>
+        <label>Upper Percentile</label>
+        <input id="upperPercentile" type="range" min="90" max="100" step="1" value="100"></input>
+        <span id="upperPercentile-value"></span>
+      </div>  
+    </div>
+  </body>
+
+  <script type="text/javascript">
+
+    mapboxgl.accessToken = 'pk.eyJ1Ijoid2lsa2luc29uZGkiLCJhIjoiY2p0dWZtNTd2MWgwbzRkbGwzejFwenhpayJ9.Do6Av-ksF42sxuuMyfCRUw';
+
+    const {MapboxLayer, HexagonLayer} = deck;
+
+    const map = new mapboxgl.Map({
+      container: document.body,
+      style: 'mapbox://styles/mapbox/dark-v10',
+      center: [-1.4157, 52.2324],
+      zoom: 6.5,
+      pitch: 40.5,
+	   minZoom: 5,
+	  maxZoom: 18,
+	  bearing: -27.396674584323023
+    });
+
+
+
+
+    DATA_URL = 'getdata.php';       //  'data.csv';      // 'getdata.php';
+
+
+    const OPTIONS = ['radius', 'coverage', 'upperPercentile'];
+    const COLOR_RANGE = [
+      [254, 254, 204],
+      [254, 254, 0],
+      [0, 254, 0],
+      [254, 237, 177],
+      [254, 0, 0],
+      [127, 0, 255]
+    ];
+		
+    const LIGHT_SETTINGS = {
+      lightsPosition: [-0.144528, 49.739968, 8000, -3.807751, 54.104682, 8000],
+      ambientRatio: 0.4,
+      diffuseRatio: 0.6,
+      specularRatio: 0.2,
+      lightsStrength: [0.8, 0.0, 0.8, 0.0],
+      numberOfLights: 2
+    };
+
+    let hexagonLayer;
+
+
+let datafile;
+
+async function getdata() {
+
+     datafile = await d3.csv(DATA_URL, d=>({
+        lat: +d.lat,
+        lng: +d.lng,
+        }))
+}
+
+
+getdata();
+
+
+    map.on('load', () => {
+      hexagonLayer = new MapboxLayer({
+        type: HexagonLayer,
+        id: 'heatmap',
+        data: datafile,
+        radius: 1000,
+        coverage: 1,
+        upperPercentile: 100,
+        colorRange: COLOR_RANGE,
+        elevationRange: [0, 1000],
+        elevationScale: 500,
+        extruded: true,
+        getPosition: d => [Number(d.lng), Number(d.lat)],
+        lightSettings: LIGHT_SETTINGS,
+        opacity: 1
+      });
+
+      map.addLayer(hexagonLayer, 'waterway-label');
+    });
+
+    OPTIONS.forEach(key => {
+      document.getElementById(key).oninput = (evt) => {
+        const value = Number(evt.target.value);
+        document.getElementById(key + '-value').innerHTML = value;
+        if (hexagonLayer) {
+          hexagonLayer.setProps({[key]: value});
+        }
+      };
+    });
+
+  </script>
+  
+  
+  
+</html>
+
+
+
